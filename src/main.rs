@@ -1,56 +1,20 @@
 use std::error;
-use std::io::{BufRead, BufReader, Error, ErrorKind, Write};
-use std::process::{ChildStdout, Command, Stdio};
+use std::io::{BufRead, Write};
 
-type Stdout = BufReader<ChildStdout>;
-
-const SERVER_JAR_PATH: &str =
-    "/Users/npc/projects/mine/mc-server-wrapper/server-playground/server.jar";
+use mc_server_wrapper::Wrapper;
 
 fn main() -> Result<(), Box<dyn error::Error>> {
-    let mut child = Command::new("java")
-        .args(&["-jar", SERVER_JAR_PATH, "nogui"])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
+    let mut wrapper = Wrapper::new()?;
+    wrapper.wait_for_server_to_spin_up()?;
 
-    let mut stdout = BufReader::new(
-        child
-            .stdout
-            .ok_or_else(|| Error::new(ErrorKind::Other, "could not capture stdout"))?,
-    );
-
-    wait_for_server_to_spin_up(&mut stdout)?;
-    println!("Reached the point where the server is up");
-
-    child
-        .stdin
-        .as_mut()
-        .ok_or("could not capture stdin")?
-        .write_all(b"/stop\n")?;
+    wrapper.stdin.write_all(b"/stop\n")?;
     println!("Just sent the stop command");
 
-    stdout
+    wrapper
+        .stdout
         .lines()
         .filter_map(|line| line.ok())
         .for_each(|line| println!("{}", line));
-
-    Ok(())
-}
-
-fn wait_for_server_to_spin_up(stdout: &mut Stdout) -> Result<(), Error> {
-    let mut buf = String::new();
-    while !buf.contains("Done") {
-        // TODO: Temporary.
-        print!("{}", &buf);
-        buf.clear();
-        stdout.read_line(&mut buf)?;
-    }
-    // Print and clear the buffer one last time. At this point, its contents are
-    // the "Done" line.
-    print!("{}", &buf);
-    buf.clear();
 
     Ok(())
 }
