@@ -76,6 +76,30 @@ impl Wrapper {
         Ok(())
     }
 
+    /// Returns the names of players who are currently logged in and playing on
+    /// the server.
+    pub fn list_players(&mut self) -> io::Result<Vec<String>> {
+        self.stdin.write_all(b"/list\n")?;
+        // Will look something like this:
+        // [16:14:22] [Server thread/INFO]: There are 2 of a max of 20 players online: player1, player2
+        let response = self.stdout.recv().unwrap();
+
+        // Strip away everything but the list of players.
+        //
+        // Should be safe to unwrap() after the rsplit_one() call since we know
+        // in advance what the contents of response will look like.
+        let (_, players_as_str) = response.rsplit_once(": ").unwrap();
+        if players_as_str.len() == 0 {
+            return Ok(Vec::new());
+        }
+
+        let players_as_vec = players_as_str
+            .split(",")
+            .map(|name| name.to_owned())
+            .collect();
+        Ok(players_as_vec)
+    }
+
     pub fn stop_server(&mut self) -> io::Result<()> {
         self.stdin.write_all(b"/stop\n")?;
         let exit_status = self.process.wait()?;
