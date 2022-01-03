@@ -1,4 +1,4 @@
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use std::{error, io, process};
 
 const SERVER_JAR_PATH: &str =
@@ -49,6 +49,18 @@ impl Wrapper {
         // Print the buffer one last time. At this point, its contents are the
         // "Done" line.
         print!("{}", &buf);
+
+        Ok(())
+    }
+
+    pub fn stop_server(&mut self) -> io::Result<()> {
+        self.stdin.write_all(b"/stop\n")?;
+        let exit_status = self.process.wait()?;
+        if !exit_status.success() {
+            // TODO: Revisit this implementation. Perhaps have this function
+            // return some new type of error that indices this happened?
+            eprintln!("The Minecraft server process exited with an unsuccessful status code");
+        }
 
         Ok(())
     }
