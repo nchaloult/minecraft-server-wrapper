@@ -16,10 +16,12 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     // all the code below works... idk still worth looking into.
 
     let stop_server = warp::path("stop")
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_wrapper(wrapper.clone()))
         .and_then(stop_server_handler);
     let list_players = warp::path("list-players")
+        .and(warp::path::end())
         .and(warp::get())
         .and(with_wrapper(wrapper))
         .and_then(list_players_handler);
