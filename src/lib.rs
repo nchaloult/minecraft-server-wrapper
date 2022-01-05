@@ -7,7 +7,7 @@ const SERVER_JAR_PATH: &str =
 
 pub struct Wrapper {
     process: process::Child,
-    pub stdin: process::ChildStdin,
+    stdin: process::ChildStdin,
     pub stdout: Receiver<String>,
     // TODO: Do we want to save stderr for anything?
 }
@@ -109,6 +109,27 @@ impl Wrapper {
             eprintln!("The Minecraft server process exited with an unsuccessful status code");
         }
 
+        Ok(())
+    }
+
+    /// Gives the Minecraft server the provided custom command. This function
+    /// immediately returns after the command is run; it doesn't watch stdout
+    /// or wait to see what the result of that command is.
+    ///
+    /// The provided `cmd` string doesn't need a trailing newline `\n`
+    /// character.
+    pub fn run_custom_command(&mut self, cmd: &str) -> io::Result<()> {
+        // Make sure the command is suffixed with a newline char. This is
+        // necessary because the Minecraft server waits until a newline char
+        // comes through on stdin before attempting to parse stdin's contents as
+        // a command.
+        let cmd_with_newline = if cmd.ends_with('\n') {
+            cmd.to_owned()
+        } else {
+            format!("{}\n", cmd)
+        };
+
+        self.stdin.write_all(cmd_with_newline.as_bytes())?;
         Ok(())
     }
 }

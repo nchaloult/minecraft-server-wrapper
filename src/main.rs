@@ -3,7 +3,7 @@ mod handlers;
 use std::{
     convert::Infallible,
     error,
-    io::{self, BufRead, Write},
+    io::{self, BufRead},
     sync::{Arc, Mutex},
     thread,
 };
@@ -39,10 +39,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
             .lines()
             .filter_map(|line| line.ok())
             .for_each(|line| {
-                // Add the newline char back in since the lines() call trims it
-                // off.
-                let cmd_with_newline_suffix = [line.as_bytes(), &vec![b'\n']].concat();
-                if let Err(e) = wrapper.lock().unwrap().stdin.write_all(&cmd_with_newline_suffix) {
+                if let Err(e) = wrapper.lock().unwrap().run_custom_command(&line) {
                     // TODO: Handle this error properly.
                     eprintln!("something went wrong while trying to pass a command to the wrapper's stdin: {}", e);
                 }
