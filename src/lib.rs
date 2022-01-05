@@ -8,7 +8,7 @@ const SERVER_JAR_PATH: &str =
 pub struct Wrapper {
     process: process::Child,
     stdin: process::ChildStdin,
-    pub stdout: Receiver<String>,
+    stdout: Receiver<String>,
     // TODO: Do we want to save stderr for anything?
 }
 
