@@ -3,7 +3,9 @@ mod handlers;
 use std::{
     convert::Infallible,
     error,
+    io::{self, BufRead, Write},
     sync::{Arc, Mutex},
+    thread,
 };
 
 use mc_server_wrapper::Wrapper;
@@ -27,9 +29,27 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     let list_players = warp::path("list-players")
         .and(warp::path::end())
         .and(warp::get())
-        .and(with_wrapper(wrapper))
+        .and(with_wrapper(wrapper.clone()))
         .and_then(handlers::list_players);
 
+    // Passing stdin to the wrapper's stdin
+    let stdin_reader = io::BufReader::new(io::stdin());
+    thread::spawn(move || {
+        stdin_reader
+            .lines()
+            .filter_map(|line| line.ok())
+            .for_each(|line| {
+                // Add the newline char back in since the lines() call trims it
+                // off.
+                let cmd_with_newline_suffix = [line.as_bytes(), &vec![b'\n']].concat();
+                if let Err(e) = wrapper.lock().unwrap().stdin.write_all(&cmd_with_newline_suffix) {
+                    // TODO: Handle this error properly.
+                    eprintln!("something went wrong while trying to pass a command to the wrapper's stdin: {}", e);
+                }
+            });
+    });
+
+    // API server
     let routes = stop_server.or(list_players);
     let (_, server) =
         warp::serve(routes).bind_with_graceful_shutdown(([0, 0, 0, 0], 6969), async {
