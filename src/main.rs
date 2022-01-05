@@ -11,10 +11,8 @@ use warp::Filter;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn error::Error>> {
     let wrapper = Arc::new(Mutex::new(Wrapper::new()?));
-    // TODO: Revisit this unwrap() call. How do we properly handle this error?
     wrapper.lock().unwrap().wait_for_server_to_spin_up()?;
-    // TODO: Do we need to manually unlock the mutex here? Apparently not since
-    // all the code below works... idk still worth looking into.
+
     let (shutdown_signal_tx, shutdown_signal_rx) = sync::oneshot::channel::<()>();
     let shutdown_signal_tx_mutex = Arc::new(Mutex::new(Some(shutdown_signal_tx)));
 
