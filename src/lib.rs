@@ -79,7 +79,7 @@ impl Wrapper {
     /// Returns the names of players who are currently logged in and playing on
     /// the server.
     pub fn list_players(&mut self) -> io::Result<Vec<String>> {
-        self.stdin.write_all(b"/list\n")?;
+        self.run_custom_command("/list")?;
         // Will look something like this:
         // [16:14:22] [Server thread/INFO]: There are 2 of a max of 20 players online: player1, player2
         let response = self.stdout.recv().unwrap();
@@ -101,7 +101,7 @@ impl Wrapper {
     }
 
     pub fn stop_server(&mut self) -> io::Result<()> {
-        self.stdin.write_all(b"/stop\n")?;
+        self.run_custom_command("/stop")?;
         let exit_status = self.process.wait()?;
         if !exit_status.success() {
             // TODO: Revisit this implementation. Perhaps have this function
@@ -120,6 +120,7 @@ impl Wrapper {
     /// character.
     pub fn run_custom_command(&mut self, cmd: &str) -> io::Result<()> {
         self.disregard_irrelevant_stdout_contents()?;
+
         // Make sure the command is suffixed with a newline char. This is
         // necessary because the Minecraft server waits until a newline char
         // comes through on stdin before attempting to parse stdin's contents as
