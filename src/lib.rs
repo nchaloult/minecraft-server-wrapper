@@ -132,4 +132,31 @@ impl Wrapper {
         self.stdin.write_all(cmd_with_newline.as_bytes())?;
         Ok(())
     }
+
+    /// Reads all the lines written to stdout that haven't been processed yet,
+    /// and discards them.
+    ///
+    /// Sometimes, the Minecraft server will write logs to stdout on its own,
+    /// like when a player dies. This wrapper is only concerned with monitoring
+    /// stdout after the user invokes a command, like asking for a list of
+    /// players who are currently online. Since stdout is buffered, we need to
+    /// drain that buffer of all messages irrelevant to us before we run a
+    /// command against the server.
+    fn disregard_irrelevant_stdout_contents(&mut self) -> io::Result<()> {
+        loop {
+            match self.stdout.try_recv() {
+                Ok(_) => continue,
+                Err(e) => match e {
+                    mpsc::TryRecvError::Empty => return Ok(()),
+                    mpsc::TryRecvError::Disconnected => {
+                        return Err(io::Error::new(
+                            io::ErrorKind::BrokenPipe,
+                            // TODO: Improve error message?
+                            "the stdout channel was closed unexpectedly",
+                        ));
+                    }
+                },
+            }
+        }
+    }
 }
