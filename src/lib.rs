@@ -119,6 +119,7 @@ impl Wrapper {
     /// The provided `cmd` string doesn't need a trailing newline `\n`
     /// character.
     pub fn run_custom_command(&mut self, cmd: &str) -> io::Result<()> {
+        self.disregard_irrelevant_stdout_contents()?;
         // Make sure the command is suffixed with a newline char. This is
         // necessary because the Minecraft server waits until a newline char
         // comes through on stdin before attempting to parse stdin's contents as
