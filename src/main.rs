@@ -24,7 +24,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     // That whole thing is wrapped in an Arc so we can share ownership of that
     // mutex across multiple async tasks, and consequently multiple threads.
     let wrapper = Arc::new(Mutex::new(Wrapper::new()?));
-    wrapper.lock().unwrap().wait_for_server_to_spin_up()?;
+    wrapper.lock().unwrap().wait_for_server_to_spin_up();
 
     // Get a one-time-use channel that will carry a message indicating that the
     // warp server should be shut down. Designed to be used by the handler for

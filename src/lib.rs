@@ -68,7 +68,7 @@ impl Wrapper {
         })
     }
 
-    pub fn wait_for_server_to_spin_up(&mut self) -> Result<(), io::Error> {
+    pub fn wait_for_server_to_spin_up(&mut self) {
         // When the Minecraft server finishes spinning up, it will send a
         // message to stdout that looks something like this:
         // [02:00:14] [Server thread/INFO]: Done (9.797s)! For help, type "help"
@@ -77,7 +77,6 @@ impl Wrapper {
         while !self.stdout.recv().unwrap().contains("Done") {
             continue;
         }
-        Ok(())
     }
 
     /// Returns the names of players who are currently logged in and playing on
