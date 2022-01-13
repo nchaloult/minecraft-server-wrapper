@@ -75,12 +75,17 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     Ok(())
 }
 
+/// A custom [warp] [Filter](warp::Filter) that gives route handlers access to
+/// a shared reference to the Minecraft server wrapper.
 fn with_wrapper(
     wrapper: Arc<Mutex<Wrapper>>,
 ) -> impl Filter<Extract = (Arc<Mutex<Wrapper>>,), Error = Infallible> + Clone {
     warp::any().map(move || wrapper.clone())
 }
 
+/// A custom [warp] [Filter](warp::Filter) that gives route handlers access to
+/// a shared reference to the one-time-use channel that will carry a message
+/// indicating that the warp server should be shut down.
 fn with_shutdown_signal_tx(
     shutdown_signal_tx: Arc<Mutex<Option<sync::oneshot::Sender<()>>>>,
 ) -> impl Filter<Extract = (Arc<Mutex<Option<sync::oneshot::Sender<()>>>>,), Error = Infallible> + Clone
