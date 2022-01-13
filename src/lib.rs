@@ -69,6 +69,9 @@ impl Wrapper {
     }
 
     pub fn wait_for_server_to_spin_up(&mut self) {
+        // TODO: Implement timeout functionality? What if something goes wrong
+        // with the underlying server and it just hangs?
+
         // When the Minecraft server finishes spinning up, it will send a
         // message to stdout that looks something like this:
         // [02:00:14] [Server thread/INFO]: Done (9.797s)! For help, type "help"
