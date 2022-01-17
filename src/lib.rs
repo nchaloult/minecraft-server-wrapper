@@ -100,7 +100,7 @@ impl Wrapper {
         }
 
         let players_as_vec = players_as_str
-            .split(",")
+            .split(',')
             .map(|name| name.to_owned())
             .collect();
         Ok(players_as_vec)
