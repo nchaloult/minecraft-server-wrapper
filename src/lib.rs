@@ -95,7 +95,7 @@ impl Wrapper {
         // Should be safe to unwrap() after the rsplit_one() call since we know
         // in advance what the contents of response will look like.
         let (_, players_as_str) = response.rsplit_once(": ").unwrap();
-        if players_as_str.len() == 0 {
+        if players_as_str.is_empty() {
             return Ok(Vec::new());
         }
 
