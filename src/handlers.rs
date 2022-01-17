@@ -16,19 +16,17 @@ pub(crate) async fn stop_server(
             match shutdown_signal_tx.lock().unwrap().take() {
                 Some(tx) => {
                     match tx.send(()) {
-                        Ok(()) => {
-                            return Ok(reply::with_status("NO_CONTENT", StatusCode::NO_CONTENT))
-                        }
+                        Ok(()) => Ok(reply::with_status("NO_CONTENT", StatusCode::NO_CONTENT)),
                         Err(()) => {
                             // TODO: Report this error to the client in the
                             // response body we send back.
                             eprintln!(
                                 "after shutting down the Minecraft server, failed to send a shutdown signal to the API server"
                             );
-                            return Ok(reply::with_status(
+                            Ok(reply::with_status(
                                 "INTERNAL_SERVER_ERROR",
                                 StatusCode::INTERNAL_SERVER_ERROR,
-                            ));
+                            ))
                         }
                     }
                 }
@@ -38,10 +36,10 @@ pub(crate) async fn stop_server(
                     eprintln!(
                         "failed to take the shutdown_signal_tx from the Option it's encased in"
                     );
-                    return Ok(reply::with_status(
+                    Ok(reply::with_status(
                         "INTERNAL_SERVER_ERROR",
                         StatusCode::INTERNAL_SERVER_ERROR,
-                    ));
+                    ))
                 }
             }
         }
