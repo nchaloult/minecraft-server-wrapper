@@ -18,13 +18,9 @@ use warp::Filter;
 
 const DEFAULT_CONFIG_FILE_NAME: &str = "config.yaml";
 const DEFAULT_PORT: u16 = 6969;
-// TODO: Require users to manually specify this.
-//
-// Or consider requiring users to place the mc-server-wrapper binary in the same
-// directory as the server.jar file. Then we could just infer where the jar is
-// by looking at the dir we're in at runtime.
-const DEFAULT_SERVER_JAR_PATH: &str =
-    "/Users/npc/projects/mine/mc-server-wrapper/server-playground/server.jar";
+// Assume that users run the mc-server-wrapper binary in the same directory as
+// their server.jar file.
+const DEFAULT_SERVER_JAR_PATH: &str = "server.jar";
 const DEFAULT_MAX_MEMORY_BUFFER_SIZE: u16 = 2048;
 
 // TODO: Write doc comments for each of these fields.
