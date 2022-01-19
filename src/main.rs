@@ -2,18 +2,92 @@ mod handlers;
 
 use std::{
     convert::Infallible,
-    error,
-    io::{self, BufRead},
+    error, fs,
+    fs::File,
+    io::{self, BufRead, Read, Write},
+    process,
     sync::{Arc, Mutex},
     thread,
 };
 
+use directories::ProjectDirs;
 use mc_server_wrapper::Wrapper;
+use serde::{Deserialize, Serialize};
 use tokio::{sync, task};
 use warp::Filter;
 
+const DEFAULT_CONFIG_FILE_NAME: &str = "config.yaml";
+const DEFAULT_PORT: u16 = 6969;
+// TODO: Require users to manually specify this.
+//
+// Or consider requiring users to place the mc-server-wrapper binary in the same
+// directory as the server.jar file. Then we could just infer where the jar is
+// by looking at the dir we're in at runtime.
+const DEFAULT_SERVER_JAR_PATH: &str =
+    "/Users/npc/projects/mine/mc-server-wrapper/server-playground/server.jar";
+const DEFAULT_MAX_MEMORY_BUFFER_SIZE: u16 = 2048;
+
+// TODO: Write doc comments for each of these fields.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+struct Config {
+    port: u16,
+    server_jar_path: String,
+    max_memory_buffer_size: u16,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn error::Error>> {
+    // Initialize a Config with default values. Later on, if a config file is
+    // present on disk, these will be overwritten by that file's contents.
+    let mut config = Config {
+        port: DEFAULT_PORT,
+        server_jar_path: DEFAULT_SERVER_JAR_PATH.to_string(),
+        max_memory_buffer_size: DEFAULT_MAX_MEMORY_BUFFER_SIZE,
+    };
+    if let Some(proj_dirs) = ProjectDirs::from("com", "nchaloult", "mc-server-wrapper") {
+        let config_dir = proj_dirs.config_dir();
+        let config_file_path = config_dir.join(DEFAULT_CONFIG_FILE_NAME);
+        let mut config_file = File::options().read(true).write(true).open(&config_file_path).unwrap_or_else(|err| {
+            if err.kind() == io::ErrorKind::NotFound {
+                // Create an empty config file. Later on, when we see that this
+                // file is empty, we won't overwrite any of the values in our
+                // default config instantiated above.
+                fs::create_dir_all(&config_dir).unwrap_or_else(|err| {
+                    // TODO: Improve error message.
+                    eprintln!("something went wrong while making a {:?} directory for the config file to live in: {}", &config_dir, err);
+                    process::exit(1);
+                });
+                File::create(&config_file_path).unwrap_or_else(|err| {
+                    // TODO: Improve error message.
+                    eprintln!(
+                        "something went wrong while trying to create a config file at {:?}: {}",
+                        &config_file_path, err
+                    );
+                    process::exit(1);
+                })
+            } else {
+                eprintln!(
+                    "something went wrong while trying to open the config file: {:?}: {}",
+                    &config_file_path, err
+                );
+                process::exit(1);
+            }
+        });
+
+        let mut config_file_contents = String::new();
+        config_file.read_to_string(&mut config_file_contents)?;
+        if config_file_contents.is_empty() {
+            // Write the default configs into that file.
+            //
+            // Set config_file_contents so the logic below can act like the file
+            // we just read wasn't actually empty.
+            config_file_contents = serde_yaml::to_string(&config)?;
+            config_file.write_all(config_file_contents.as_bytes())?;
+        }
+        // Overwrite our config struct with the config file's contents.
+        config = serde_yaml::from_str(&config_file_contents)?;
+    }
+
     // Get a new server wrapper, and wait for that wrapper to launch the
     // underlying Minecraft server.
     //
@@ -23,7 +97,10 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     //
     // That whole thing is wrapped in an Arc so we can share ownership of that
     // mutex across multiple async tasks, and consequently multiple threads.
-    let wrapper = Arc::new(Mutex::new(Wrapper::new()?));
+    let wrapper = Arc::new(Mutex::new(Wrapper::new(
+        config.max_memory_buffer_size,
+        &config.server_jar_path,
+    )?));
     wrapper.lock().unwrap().wait_for_server_to_spin_up();
 
     // Get a one-time-use channel that will carry a message indicating that the
@@ -67,7 +144,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     // Stand up the API server.
     let routes = stop_server.or(list_players);
     let (_, server) =
-        warp::serve(routes).bind_with_graceful_shutdown(([0, 0, 0, 0], 6969), async {
+        warp::serve(routes).bind_with_graceful_shutdown(([0, 0, 0, 0], config.port), async {
             shutdown_signal_rx.await.ok();
         });
     task::spawn(server).await.unwrap();

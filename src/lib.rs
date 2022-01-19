@@ -2,9 +2,6 @@ use std::io::{BufRead, Write};
 use std::sync::mpsc::{self, Receiver};
 use std::{error, io, process, thread};
 
-const SERVER_JAR_PATH: &str =
-    "/Users/npc/projects/mine/mc-server-wrapper/server-playground/server.jar";
-
 pub struct Wrapper {
     process: process::Child,
     stdin: process::ChildStdin,
@@ -22,11 +19,19 @@ impl Wrapper {
     /// to stdout on the host for visibility, and it sends the line along a mpsc
     /// channel. The Wrapper can then pull messages from this channel if it
     /// needs to parse messages that the Minecraft server produces.
-    pub fn new() -> Result<Wrapper, Box<dyn error::Error>> {
+    pub fn new(
+        max_memory_buffer_size: u16,
+        server_jar_path: &str,
+    ) -> Result<Wrapper, Box<dyn error::Error>> {
         let (stdout_tx, stdout_rx) = mpsc::channel::<String>();
 
         let mut process = process::Command::new("java")
-            .args(&["-jar", SERVER_JAR_PATH, "nogui"])
+            .args(&[
+                &format!("-Xmx{}m", max_memory_buffer_size),
+                "-jar",
+                server_jar_path,
+                "nogui",
+            ])
             .stdin(process::Stdio::piped())
             .stdout(process::Stdio::piped())
             .stderr(process::Stdio::piped())
