@@ -27,6 +27,10 @@ impl Wrapper {
 
         let mut process = process::Command::new("java")
             .args(&[
+                // Just in case...
+                // https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44832
+                // https://twitter.com/slicedlime/status/1469164192389287939
+                "-Dlog4j2.formatMsgNoLookups=true",
                 &format!("-Xmx{}m", max_memory_buffer_size),
                 "-jar",
                 server_jar_path,
