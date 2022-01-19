@@ -152,7 +152,10 @@ fn get_config() -> Result<Config, Box<dyn error::Error>> {
                     eprintln!("something went wrong while making a {:?} directory for the config file to live in: {}", &config_dir, err);
                     process::exit(1);
                 });
-                File::create(&config_file_path).unwrap_or_else(|err| {
+                // We can't use something more simple here like
+                // fs::File::create() because we need to be able to read from
+                // this file later on.
+                File::options().read(true).write(true).create_new(true).open(&config_file_path).unwrap_or_else(|err| {
                     // TODO: Improve error message.
                     eprintln!(
                         "something went wrong while trying to create a config file at {:?}: {}",
