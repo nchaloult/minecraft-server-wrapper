@@ -24,6 +24,33 @@ Each time you want to launch the server, run the wrapper instead of running the 
 ./mc-server-wrapper
 ```
 
+### Configuration
+
+`mc-server-wrapper` loads configs from a `.yaml` file on startup. If a config file doesn't exist, it creates one with some sensible defaults. Feel free to edit the file and change any of the values inside.
+
+The config file lives in the appropriate place depending on your operating system. `mc-server-wrapper` uses the [`directories`](https://crates.io/crates/directories) crate to find where that is. As of `directories` version 4.0, those locations are:
+
+- Linux: `/home/<your-username>/.config/mc-server-wrapper/config.yaml`
+- macOS: `/Users/<your-username>/Library/Application Support/com.nchaloult.mc-server-wrapper/config.yaml`
+- Windows: `C:\Users\<your-username>\AppData\Roaming\nchaloult\mc-server-wrapper\config\config.yaml`
+
+Here's a sample `config.yaml` file:
+
+```yaml
+---
+# Port that mc-server-wrapper listens for HTTP requests on.
+port: 6969
+# Path to the server.jar file provided my Mojang.
+#
+# Can either be relative to the `mc-server-wrapper` binary, or an absolute path.
+server_jar_path: server.jar
+# The max size (in megabytes) for the Minecraft server process's memory
+# allocation buffer on the JVM.
+#
+# This number is passed into the `-Xmx` option when spawning the server process.
+max_memory_buffer_size: 2048
+```
+
 ### Command-Line Functionality
 
 Normally, the primary way to interact with a vanilla Minecraft server is by entering commands into an interactive process that the `server.jar` spawns. `mc-server-wrapper` doesn't compromise this functionality — it captures user input and passes it to that process's `stdin`. If you'd like, you can interact with the Minecraft server as if the wrapper weren't there.
