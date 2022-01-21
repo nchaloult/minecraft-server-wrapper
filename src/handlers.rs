@@ -25,7 +25,7 @@ pub(crate) async fn stop_server(
         Some(tx) => {
             if tx.send(()).is_err() {
                 let err_msg =
-                    "Failed to take the shutdown_signal_tx from the Option it's encased in";
+                    "Failed to send an API shutdown signal message along the oneshot channel";
                 eprintln!("{}", err_msg);
                 return Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response());
             }
