@@ -99,8 +99,10 @@ impl Wrapper {
 
     /// Returns the names of players who are currently logged in and playing on
     /// the server.
-    pub fn list_players(&mut self) -> io::Result<Vec<String>> {
-        self.run_custom_command("/list")?;
+    pub fn list_players(&mut self) -> anyhow::Result<Vec<String>> {
+        self.run_custom_command("/list").with_context(|| {
+            "Something went wrong while sending the Minecraft server the \"/list\" command"
+        })?;
         // Will look something like this:
         // [16:14:22] [Server thread/INFO]: There are 2 of a max of 20 players online: player1, player2
         let response = self.stdout.recv().unwrap();
