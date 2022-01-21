@@ -5,15 +5,18 @@ use std::{
     error, fs,
     fs::File,
     io::{self, BufRead, Read, Write},
+    net::SocketAddr,
     process,
     sync::{Arc, Mutex},
     thread,
 };
 
+use axum::routing::get;
+use axum::Router;
 use directories::ProjectDirs;
 use mc_server_wrapper::Wrapper;
 use serde::{Deserialize, Serialize};
-use tokio::{sync, task};
+use tokio::sync;
 use warp::Filter;
 
 const DEFAULT_CONFIG_FILE_NAME: &str = "config.yaml";
@@ -61,17 +64,25 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     let shutdown_signal_tx_mutex = Arc::new(Mutex::new(Some(shutdown_signal_tx)));
 
     // Route filters.
-    let stop_server = warp::path("stop")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(with_wrapper(wrapper.clone()))
-        .and(with_shutdown_signal_tx(shutdown_signal_tx_mutex))
-        .and_then(handlers::stop_server);
-    let list_players = warp::path("list-players")
-        .and(warp::path::end())
-        .and(warp::get())
-        .and(with_wrapper(wrapper.clone()))
-        .and_then(handlers::list_players);
+    // let stop_server = warp::path("stop")
+    //     .and(warp::path::end())
+    //     .and(warp::get())
+    //     .and(with_wrapper(wrapper.clone()))
+    //     .and(with_shutdown_signal_tx(shutdown_signal_tx_mutex))
+    //     .and_then(handlers::stop_server);
+    // let list_players = warp::path("list-players")
+    //     .and(warp::path::end())
+    //     .and(warp::get())
+    //     .and(with_wrapper(wrapper.clone()))
+    //     .and_then(handlers::list_players);
+
+    let routes = Router::new().route(
+        "/stop",
+        get({
+            let wrapper = Arc::clone(&wrapper);
+            move || handlers::axum_stop_server(Arc::clone(&wrapper), shutdown_signal_tx_mutex)
+        }),
+    );
 
     // Pass any lines that are written to stdin onto the underlying Minecraft
     // server's stdin pipe. This lets server admins with access to the machine
@@ -91,12 +102,21 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     });
 
     // Stand up the API server.
-    let routes = stop_server.or(list_players);
-    let (_, server) =
-        warp::serve(routes).bind_with_graceful_shutdown(([0, 0, 0, 0], config.port), async {
+    // let routes = stop_server.or(list_players);
+    // let (_, server) =
+    //     warp::serve(routes).bind_with_graceful_shutdown(([0, 0, 0, 0], config.port), async {
+    //         shutdown_signal_rx.await.ok();
+    //     });
+    // task::spawn(server).await.unwrap();
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], config.port));
+    axum::Server::bind(&addr)
+        .serve(routes.into_make_service())
+        .with_graceful_shutdown(async {
             shutdown_signal_rx.await.ok();
-        });
-    task::spawn(server).await.unwrap();
+        })
+        .await
+        .unwrap();
 
     Ok(())
 }
