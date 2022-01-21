@@ -76,13 +76,21 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     //     .and(with_wrapper(wrapper.clone()))
     //     .and_then(handlers::list_players);
 
-    let routes = Router::new().route(
-        "/stop",
-        get({
-            let wrapper = Arc::clone(&wrapper);
-            move || handlers::axum_stop_server(Arc::clone(&wrapper), shutdown_signal_tx_mutex)
-        }),
-    );
+    let routes = Router::new()
+        .route(
+            "/stop",
+            get({
+                let wrapper = Arc::clone(&wrapper);
+                move || handlers::axum_stop_server(Arc::clone(&wrapper), shutdown_signal_tx_mutex)
+            }),
+        )
+        .route(
+            "/list-players",
+            get({
+                let wrapper = Arc::clone(&wrapper);
+                move || handlers::axum_list_players(Arc::clone(&wrapper))
+            }),
+        );
 
     // Pass any lines that are written to stdin onto the underlying Minecraft
     // server's stdin pipe. This lets server admins with access to the machine

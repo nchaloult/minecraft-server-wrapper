@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::Json;
 use mc_server_wrapper::Wrapper;
 use tokio::sync;
 use warp::reply;
@@ -108,6 +109,22 @@ pub(crate) async fn list_players(
             //     StatusCode::INTERNAL_SERVER_ERROR,
             // ))
             Ok(format!("{:?}", Vec::<String>::new()))
+        }
+    }
+}
+
+pub(crate) async fn axum_list_players(
+    wrapper: Arc<Mutex<Wrapper>>,
+) -> Result<Json<Vec<String>>, Response> {
+    match wrapper.lock().unwrap().list_players() {
+        Ok(players) => Ok(players.into()),
+        Err(e) => {
+            let err_msg = format!(
+                "Something went wrong while trying to fetch the list of players online: {}",
+                e
+            );
+            eprintln!("{}", err_msg);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response())
         }
     }
 }
