@@ -1,7 +1,6 @@
 mod handlers;
 
 use std::{
-    convert::Infallible,
     error, fs,
     fs::File,
     io::{self, BufRead, Read, Write},
@@ -17,7 +16,6 @@ use directories::ProjectDirs;
 use mc_server_wrapper::Wrapper;
 use serde::{Deserialize, Serialize};
 use tokio::sync;
-use warp::Filter;
 
 const DEFAULT_CONFIG_FILE_NAME: &str = "config.yaml";
 const DEFAULT_PORT: u16 = 6969;
@@ -63,19 +61,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     // Wrapped in an Arc<Mutex<_>> for the same reasons as the server wrapper.
     let shutdown_signal_tx_mutex = Arc::new(Mutex::new(Some(shutdown_signal_tx)));
 
-    // Route filters.
-    // let stop_server = warp::path("stop")
-    //     .and(warp::path::end())
-    //     .and(warp::get())
-    //     .and(with_wrapper(wrapper.clone()))
-    //     .and(with_shutdown_signal_tx(shutdown_signal_tx_mutex))
-    //     .and_then(handlers::stop_server);
-    // let list_players = warp::path("list-players")
-    //     .and(warp::path::end())
-    //     .and(warp::get())
-    //     .and(with_wrapper(wrapper.clone()))
-    //     .and_then(handlers::list_players);
-
+    // Set up API route handlers.
     let routes = Router::new()
         .route(
             "/stop",
@@ -110,13 +96,6 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     });
 
     // Stand up the API server.
-    // let routes = stop_server.or(list_players);
-    // let (_, server) =
-    //     warp::serve(routes).bind_with_graceful_shutdown(([0, 0, 0, 0], config.port), async {
-    //         shutdown_signal_rx.await.ok();
-    //     });
-    // task::spawn(server).await.unwrap();
-
     let addr = SocketAddr::from(([127, 0, 0, 1], config.port));
     axum::Server::bind(&addr)
         .serve(routes.into_make_service())
@@ -127,24 +106,6 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
         .unwrap();
 
     Ok(())
-}
-
-/// A custom [warp] [Filter](warp::Filter) that gives route handlers access to
-/// a shared reference to the Minecraft server wrapper.
-fn with_wrapper(
-    wrapper: Arc<Mutex<Wrapper>>,
-) -> impl Filter<Extract = (Arc<Mutex<Wrapper>>,), Error = Infallible> + Clone {
-    warp::any().map(move || wrapper.clone())
-}
-
-/// A custom [warp] [Filter](warp::Filter) that gives route handlers access to
-/// a shared reference to the one-time-use channel that will carry a message
-/// indicating that the warp server should be shut down.
-fn with_shutdown_signal_tx(
-    shutdown_signal_tx: Arc<Mutex<Option<sync::oneshot::Sender<()>>>>,
-) -> impl Filter<Extract = (Arc<Mutex<Option<sync::oneshot::Sender<()>>>>,), Error = Infallible> + Clone
-{
-    warp::any().map(move || shutdown_signal_tx.clone())
 }
 
 /// Reads configs from a config file, and returns a [Config] with those values.
