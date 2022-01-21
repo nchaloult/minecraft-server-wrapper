@@ -6,6 +6,8 @@ use std::{
     thread,
 };
 
+use anyhow::{bail, Context};
+
 pub struct Wrapper {
     process: process::Child,
     stdin: process::ChildStdin,
@@ -119,13 +121,22 @@ impl Wrapper {
         Ok(players_as_vec)
     }
 
-    pub fn stop_server(&mut self) -> io::Result<()> {
-        self.run_custom_command("/stop")?;
-        let exit_status = self.process.wait()?;
+    pub fn stop_server(&mut self) -> anyhow::Result<()> {
+        self.run_custom_command("/stop").with_context(|| {
+            "Something went wrong while sending the Minecraft server the \"/stop\" command"
+        })?;
+        let exit_status = self
+            .process
+            .wait()
+            .with_context(|| "Failed to wait for the Minecraft server process to exit")?;
         if !exit_status.success() {
-            // TODO: Revisit this implementation. Perhaps have this function
-            // return some new type of error that indices this happened?
-            eprintln!("The Minecraft server process exited with an unsuccessful status code");
+            match exit_status.code() {
+                Some(code) => bail!(
+                    "The Minecraft server process exited with status code {}",
+                    code
+                ),
+                None => bail!("The Minecraft server process was terminated forcefully by a signal"),
+            }
         }
 
         Ok(())
