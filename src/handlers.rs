@@ -25,7 +25,7 @@ pub(crate) async fn stop_server(
 
     if let Err(e) = send_api_server_shutdown_signal(shutdown_signal_tx) {
         eprintln!("{}", e);
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, e).into_response());
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response());
     }
 
     Ok(StatusCode::NO_CONTENT)

@@ -220,17 +220,15 @@ fn get_config() -> anyhow::Result<Config> {
 /// open until they receive the responses they're waiting on.
 fn send_api_server_shutdown_signal(
     shutdown_signal_tx_mutex: Arc<Mutex<Option<oneshot::Sender<()>>>>,
-) -> Result<(), &'static str> {
+) -> anyhow::Result<()> {
     match shutdown_signal_tx_mutex.lock().unwrap().take() {
         Some(tx) => {
-            if tx.send(()).is_err() {
-                return Err(
-                    "Failed to send an API shutdown signal message along the oneshot channel",
-                );
+            if let Err(e) = tx.send(()) {
+                bail!("Failed to send an API server shutdown signal message along the oneshot channel: {:?}", e)
             }
         }
         None => {
-            return Err("Failed to take the shutdown_signal_tx from the Option it's encased in");
+            bail!("Failed to take the shutdown_signal_tx from the Option it's encased in")
         }
     }
 
