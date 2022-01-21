@@ -5,6 +5,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use log::warn;
 use mc_server_wrapper::Wrapper;
 use tokio::sync::oneshot;
 
@@ -19,13 +20,17 @@ pub(crate) async fn stop_server(
             "Something went wrong while trying to stop the server: {}",
             e
         );
-        eprintln!("{}", &err_msg);
+        warn!("GET /stop: {}", &err_msg);
         return Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response());
     }
 
     if let Err(e) = send_api_server_shutdown_signal(shutdown_signal_tx) {
-        eprintln!("{}", e);
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response());
+        let err_msg = format!(
+            "Something went wrong while trying to stop the API server: {}",
+            e
+        );
+        warn!("GET /stop: {}", err_msg);
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response());
     }
 
     Ok(StatusCode::NO_CONTENT)
@@ -41,7 +46,7 @@ pub(crate) async fn list_players(
                 "Something went wrong while trying to fetch the list of players online: {}",
                 e
             );
-            eprintln!("{}", err_msg);
+            warn!("GET /list-players: {}", err_msg);
             Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response())
         }
     }

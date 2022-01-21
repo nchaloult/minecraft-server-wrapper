@@ -13,6 +13,7 @@ use std::{
 use anyhow::{bail, Context};
 use axum::{routing::get, Router};
 use directories::ProjectDirs;
+use log::{error, warn};
 use mc_server_wrapper::Wrapper;
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
@@ -34,6 +35,8 @@ struct Config {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn error::Error>> {
+    pretty_env_logger::init();
+
     // Initialize a Config with default values. If a config file is present on
     // disk, those defaults are replaced by that file's contents.
     let config = get_config()?;
@@ -99,22 +102,18 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
                 // special case.
                 if line == "/stop" {
                     if let Err(e) = wrapper.lock().unwrap().stop_server() {
-                        // TODO: Handle this error properly.
-                        eprintln!("something went wrong while trying to stop the Minecraft server: {}", e);
-
+                        warn!("Something went wrong while trying to stop the Minecraft server: {}", e);
                         // Don't fail fast with process::exit() or something. If
                         // we fail to properly shut down the Minecraft server,
                         // we still want to try to shut down the API server.
                     }
 
                     if let Err(e) = send_api_server_shutdown_signal(shutdown_signal_tx_mutex.clone()) {
-                        // TODO: Handle this error properly.
-                        eprintln!("{}", e);
+                        error!("{}", e);
                         process::exit(1);
                     }
                 } else if let Err(e) = wrapper.lock().unwrap().run_custom_command(&line) {
-                    // TODO: Handle this error properly.
-                    eprintln!("something went wrong while trying to pass a command to the wrapper's stdin: {}", e);
+                    warn!("Something went wrong while trying to pass a command to the wrapper's stdin: {}", e);
                 }
             });
     });
