@@ -178,18 +178,17 @@ impl Wrapper {
     /// command against the server.
     fn disregard_irrelevant_stdout_contents(&mut self) -> io::Result<()> {
         loop {
-            match self.stdout.try_recv() {
-                Ok(_) => continue,
-                Err(e) => match e {
+            if let Err(e) = self.stdout.try_recv() {
+                match e {
                     mpsc::TryRecvError::Empty => return Ok(()),
                     mpsc::TryRecvError::Disconnected => {
                         return Err(io::Error::new(
                             io::ErrorKind::BrokenPipe,
                             // TODO: Improve error message?
-                            "the stdout channel was closed unexpectedly",
+                            "The stdout channel was closed unexpectedly",
                         ));
                     }
-                },
+                }
             }
         }
     }
