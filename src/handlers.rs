@@ -8,6 +8,8 @@ use axum::{
 use mc_server_wrapper::Wrapper;
 use tokio::sync::oneshot;
 
+use crate::send_api_server_shutdown_signal;
+
 pub(crate) async fn stop_server(
     wrapper: Arc<Mutex<Wrapper>>,
     shutdown_signal_tx: Arc<Mutex<Option<oneshot::Sender<()>>>>,
@@ -21,20 +23,9 @@ pub(crate) async fn stop_server(
         return Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response());
     }
 
-    match shutdown_signal_tx.lock().unwrap().take() {
-        Some(tx) => {
-            if tx.send(()).is_err() {
-                let err_msg =
-                    "Failed to send an API shutdown signal message along the oneshot channel";
-                eprintln!("{}", err_msg);
-                return Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response());
-            }
-        }
-        None => {
-            let err_msg = "Failed to take the shutdown_signal_tx from the Option it's encased in";
-            eprintln!("{}", err_msg);
-            return Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response());
-        }
+    if let Err(e) = send_api_server_shutdown_signal(shutdown_signal_tx) {
+        eprintln!("{}", e);
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, e).into_response());
     }
 
     Ok(StatusCode::NO_CONTENT)

@@ -66,7 +66,13 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
             "/stop",
             get({
                 let wrapper = Arc::clone(&wrapper);
-                move || handlers::stop_server(Arc::clone(&wrapper), shutdown_signal_tx_mutex)
+                let shutdown_signal_tx_mutex = Arc::clone(&shutdown_signal_tx_mutex);
+                move || {
+                    handlers::stop_server(
+                        Arc::clone(&wrapper),
+                        Arc::clone(&shutdown_signal_tx_mutex),
+                    )
+                }
             }),
         )
         .route(
@@ -87,7 +93,25 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
             .lines()
             .filter_map(|line| line.ok())
             .for_each(|line| {
-                if let Err(e) = wrapper.lock().unwrap().run_custom_command(&line) {
+                // If a user types "/stop", we want to shut down the API server,
+                // as well. Intercept "/stop" commands and treat them as a
+                // special case.
+                if line == "/stop" {
+                    if let Err(e) = wrapper.lock().unwrap().stop_server() {
+                        // TODO: Handle this error properly.
+                        eprintln!("something went wrong while trying to stop the Minecraft server: {}", e);
+
+                        // Don't fail fast with process::exit() or something. If
+                        // we fail to properly shut down the Minecraft server,
+                        // we still want to try to shut down the API server.
+                    }
+
+                    if let Err(e) = send_api_server_shutdown_signal(shutdown_signal_tx_mutex.clone()) {
+                        // TODO: Handle this error properly.
+                        eprintln!("{}", e);
+                        process::exit(1);
+                    }
+                } else if let Err(e) = wrapper.lock().unwrap().run_custom_command(&line) {
                     // TODO: Handle this error properly.
                     eprintln!("something went wrong while trying to pass a command to the wrapper's stdin: {}", e);
                 }
@@ -171,4 +195,29 @@ fn get_config() -> Result<Config, Box<dyn error::Error>> {
     }
 
     Ok(config)
+}
+
+/// Sends a signal to the API server to begin gracefully shutting down.
+///
+/// Sends an empty message along the provided [oneshot channel](tokio::sync::oneshot::channel),
+/// then returns. After this message is sent, no new clients connections will be
+/// established, but all existing, active connections with clients will remain
+/// open until they receive the responses they're waiting on.
+fn send_api_server_shutdown_signal(
+    shutdown_signal_tx_mutex: Arc<Mutex<Option<oneshot::Sender<()>>>>,
+) -> Result<(), &'static str> {
+    match shutdown_signal_tx_mutex.lock().unwrap().take() {
+        Some(tx) => {
+            if tx.send(()).is_err() {
+                return Err(
+                    "Failed to send an API shutdown signal message along the oneshot channel",
+                );
+            }
+        }
+        None => {
+            return Err("Failed to take the shutdown_signal_tx from the Option it's encased in");
+        }
+    }
+
+    Ok(())
 }
