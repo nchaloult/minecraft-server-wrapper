@@ -4,6 +4,8 @@ A small utility that wraps a Java Minecraft server process and exposes HTTP APIs
 
 Built to wrap a vanilla Minecraft server — not servers with [Fabric](https://fabricmc.net) or [Forge](https://mcforge.readthedocs.io/en/1.18.x/), for instance.
 
+**If you plan to run a server with players you don't trust:** please read [this disclaimer](#a-note-about-api-abuse-and-access-management) about API abuse and access management.
+
 ## Installation
 
 1. Get a `mc-server-wrapper` binary
@@ -59,3 +61,13 @@ Normally, the primary way to interact with a vanilla Minecraft server is by ente
 
 - `GET /list-players`: Get a list of the usernames of all players who are currently logged in
 - `GET /stop`: Gracefully shut down the Minecraft server, and stop listening for more incoming HTTP requests
+
+## A Note about API Abuse and Access Management
+
+_Wait, can't anyone hit the API endpoints that `mc-server-wrapper` exposes?_
+
+Yes, they can!
+
+If you stand up a Minecraft server, give out its address or domain name, and players know that you're using this wrapper, there's nothing stopping them from finding the port it's listening for requests on and hitting its endpoints. This wrapper doesn't protect them with rate limiting, some kind of authentication mechanism, or anything else.
+
+I worked on this project to learn more about Rust, and to build something that made mine and my friends' lives easier while maintaining servers that we play on together. If there were 25 hours in a day, I'd love to get around to addressing these issues. For now, though, please be aware that these problems exist if you want to use this wrapper.
