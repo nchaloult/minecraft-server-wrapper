@@ -1,1 +1,5 @@
 /target
+
+# Used by me while testing locally. I keep a copy of a server.jar file from
+# Mojang in here.
+/server-playground
