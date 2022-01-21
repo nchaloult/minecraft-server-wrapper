@@ -10,6 +10,7 @@ use std::{
     thread,
 };
 
+use anyhow::{bail, Context};
 use axum::{routing::get, Router};
 use directories::ProjectDirs;
 use mc_server_wrapper::Wrapper;
@@ -138,7 +139,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
 /// The config file lives in the canonical place depending on the operating
 /// system that the user is running the mc-server-wrapper binary on. The
 /// `directories` crate determines where that location is.
-fn get_config() -> Result<Config, Box<dyn error::Error>> {
+fn get_config() -> anyhow::Result<Config> {
     // Create a Config with sensible defaults. If a config file is present,
     // these will be overwritten after that file is read.
     let mut config = Config {
@@ -150,45 +151,59 @@ fn get_config() -> Result<Config, Box<dyn error::Error>> {
     if let Some(proj_dirs) = ProjectDirs::from("com", "nchaloult", "mc-server-wrapper") {
         let config_dir = proj_dirs.config_dir();
         let config_file_path = config_dir.join(DEFAULT_CONFIG_FILE_NAME);
-        let mut config_file = File::options().read(true).write(true).open(&config_file_path).unwrap_or_else(|err| {
-            if err.kind() == io::ErrorKind::NotFound {
-                // Create an empty config file. Later on, when we see that this
-                // file is empty, we won't overwrite any of the values in our
-                // default config instantiated above.
-                fs::create_dir_all(&config_dir).unwrap_or_else(|err| {
-                    // TODO: Improve error message.
-                    eprintln!("something went wrong while making a {:?} directory for the config file to live in: {}", &config_dir, err);
-                    process::exit(1);
-                });
-                // We can't use something more simple here like
-                // fs::File::create() because we need to be able to read from
-                // this file later on.
-                File::options().read(true).write(true).create_new(true).open(&config_file_path).unwrap_or_else(|err| {
-                    // TODO: Improve error message.
-                    eprintln!(
-                        "something went wrong while trying to create a config file at {:?}: {}",
-                        &config_file_path, err
-                    );
-                    process::exit(1);
-                })
-            } else {
-                eprintln!(
-                    "something went wrong while trying to open the config file: {:?}: {}",
-                    &config_file_path, err
-                );
-                process::exit(1);
+        let mut config_file = match File::options()
+            .read(true)
+            .write(true)
+            .open(&config_file_path)
+        {
+            Ok(f) => f,
+            Err(e) => {
+                if e.kind() == io::ErrorKind::NotFound {
+                    // Create an empty config file. Later on, when we see that
+                    // this file is empty, we won't overwrite any of the values
+                    // in our default config instantiated above.
+                    fs::create_dir_all(&config_dir).with_context(|| format!("Something went wrong while making a {:?} directory for the config file to live in", &config_dir))?;
+                    // We can't use something more simple here like
+                    // fs::File::create() because we need to be able to read
+                    // from this file later on.
+                    File::options()
+                        .read(true)
+                        .write(true)
+                        .create_new(true)
+                        .open(&config_file_path)
+                        .with_context(|| {
+                            format!(
+                                "Something went wrong while trying to create a config file at {:?}",
+                                &config_file_path
+                            )
+                        })?
+                } else {
+                    bail!(
+                        "Something went wrong while trying to open the config file at {:?}",
+                        &config_file_path
+                    )
+                }
             }
-        });
+        };
 
         let mut config_file_contents = String::new();
-        config_file.read_to_string(&mut config_file_contents)?;
+        config_file
+            .read_to_string(&mut config_file_contents)
+            .with_context(|| format!("Failed to read the contents of {:?}", &config_file_path))?;
         if config_file_contents.is_empty() {
             // Write the default configs into that file.
             //
             // Set config_file_contents so the logic below can act like the file
             // we just read wasn't actually empty.
             config_file_contents = serde_yaml::to_string(&config)?;
-            config_file.write_all(config_file_contents.as_bytes())?;
+            config_file
+                .write_all(config_file_contents.as_bytes())
+                .with_context(|| {
+                    format!(
+                        "Failed to write the Config below to {:?}\n{:?}",
+                        &config_file_path, &config
+                    )
+                })?;
         }
         // Overwrite our config struct with the config file's contents.
         config = serde_yaml::from_str(&config_file_contents)?;
