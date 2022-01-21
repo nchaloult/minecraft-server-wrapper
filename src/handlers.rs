@@ -1,14 +1,16 @@
 use std::sync::{Arc, Mutex};
 
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use axum::Json;
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use mc_server_wrapper::Wrapper;
-use tokio::sync;
+use tokio::sync::oneshot;
 
 pub(crate) async fn stop_server(
     wrapper: Arc<Mutex<Wrapper>>,
-    shutdown_signal_tx: Arc<Mutex<Option<sync::oneshot::Sender<()>>>>,
+    shutdown_signal_tx: Arc<Mutex<Option<oneshot::Sender<()>>>>,
 ) -> Result<StatusCode, Response> {
     if let Err(e) = wrapper.lock().unwrap().stop_server() {
         let err_msg = format!(

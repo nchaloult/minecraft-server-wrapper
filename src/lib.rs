@@ -1,6 +1,10 @@
-use std::io::{BufRead, Write};
-use std::sync::mpsc::{self, Receiver};
-use std::{error, io, process, thread};
+use std::{
+    error,
+    io::{self, BufRead, Write},
+    process,
+    sync::mpsc::{self, Receiver},
+    thread,
+};
 
 pub struct Wrapper {
     process: process::Child,

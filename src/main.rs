@@ -1,8 +1,8 @@
 mod handlers;
 
 use std::{
-    error, fs,
-    fs::File,
+    error,
+    fs::{self, File},
     io::{self, BufRead, Read, Write},
     net::SocketAddr,
     process,
@@ -10,12 +10,11 @@ use std::{
     thread,
 };
 
-use axum::routing::get;
-use axum::Router;
+use axum::{routing::get, Router};
 use directories::ProjectDirs;
 use mc_server_wrapper::Wrapper;
 use serde::{Deserialize, Serialize};
-use tokio::sync;
+use tokio::sync::oneshot;
 
 const DEFAULT_CONFIG_FILE_NAME: &str = "config.yaml";
 const DEFAULT_PORT: u16 = 6969;
@@ -57,7 +56,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     // warp server should be shut down. Designed to be used by the handler for
     // the /stop route -- this way, when the Minecraft server spins down, we'll
     // stop serving new incoming requests to talk to it.
-    let (shutdown_signal_tx, shutdown_signal_rx) = sync::oneshot::channel::<()>();
+    let (shutdown_signal_tx, shutdown_signal_rx) = oneshot::channel::<()>();
     // Wrapped in an Arc<Mutex<_>> for the same reasons as the server wrapper.
     let shutdown_signal_tx_mutex = Arc::new(Mutex::new(Some(shutdown_signal_tx)));
 
