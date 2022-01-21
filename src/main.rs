@@ -67,14 +67,14 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
             "/stop",
             get({
                 let wrapper = Arc::clone(&wrapper);
-                move || handlers::axum_stop_server(Arc::clone(&wrapper), shutdown_signal_tx_mutex)
+                move || handlers::stop_server(Arc::clone(&wrapper), shutdown_signal_tx_mutex)
             }),
         )
         .route(
             "/list-players",
             get({
                 let wrapper = Arc::clone(&wrapper);
-                move || handlers::axum_list_players(Arc::clone(&wrapper))
+                move || handlers::list_players(Arc::clone(&wrapper))
             }),
         );
 

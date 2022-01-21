@@ -6,7 +6,7 @@ use axum::Json;
 use mc_server_wrapper::Wrapper;
 use tokio::sync;
 
-pub(crate) async fn axum_stop_server(
+pub(crate) async fn stop_server(
     wrapper: Arc<Mutex<Wrapper>>,
     shutdown_signal_tx: Arc<Mutex<Option<sync::oneshot::Sender<()>>>>,
 ) -> Result<StatusCode, Response> {
@@ -38,7 +38,7 @@ pub(crate) async fn axum_stop_server(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub(crate) async fn axum_list_players(
+pub(crate) async fn list_players(
     wrapper: Arc<Mutex<Wrapper>>,
 ) -> Result<Json<Vec<String>>, Response> {
     match wrapper.lock().unwrap().list_players() {
