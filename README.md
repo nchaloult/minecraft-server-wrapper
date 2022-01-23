@@ -26,6 +26,17 @@ Each time you want to launch the server, run the wrapper instead of running the 
 ./mc-server-wrapper
 ```
 
+By default, `mc-server-wrapper` will only write messages to `stdout` that the Minecraft server produces. If you'd like to see log messages that have more info about events and errors, set the `RUST_LOG` environment variable.
+
+```bash
+# Either set it permanently:
+echo "export RUST_LOG=mc_server_wrapper" >> ~/.bashrc # (or ~/.zshrc, or whatever else you use)
+source ~/.bashrc # (or ~/.zshrc, or whatever)
+./mc-server-wrapper
+# Or control it on a case-by-case basis:
+RUST_LOG=mc_server_wrapper ./mc-server-wrapper
+```
+
 ### Configuration
 
 `mc-server-wrapper` loads configs from a `.yaml` file on startup. If a config file doesn't exist, it creates one with some sensible defaults. Feel free to edit the file and change any of the values inside.
