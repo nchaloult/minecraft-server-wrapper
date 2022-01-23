@@ -71,7 +71,7 @@ impl Wrapper {
                 // be to just drop stdout messages that fail to send.
                 .for_each(|line| {
                     // Print each line for visibility.
-                    println!("[Server] {}", line);
+                    println!("{}", line);
                     stdout_tx.send(line).unwrap()
                 });
         });
