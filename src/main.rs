@@ -85,6 +85,13 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
                 let wrapper = Arc::clone(&wrapper);
                 move || handlers::list_players(Arc::clone(&wrapper))
             }),
+        )
+        .route(
+            "/make-world-backup",
+            get({
+                let wrapper = Arc::clone(&wrapper);
+                move || handlers::make_world_backup(Arc::clone(&wrapper))
+            }),
         );
 
     // Pass any lines that are written to stdin onto the underlying Minecraft

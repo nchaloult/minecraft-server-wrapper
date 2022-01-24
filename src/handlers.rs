@@ -51,3 +51,18 @@ pub(crate) async fn list_players(
         }
     }
 }
+
+pub(crate) async fn make_world_backup(
+    wrapper: Arc<Mutex<Wrapper>>,
+) -> Result<StatusCode, Response> {
+    if let Err(e) = wrapper.lock().unwrap().make_world_backup() {
+        let err_msg = format!(
+            "Something went wrong while trying to make a server backup: {}",
+            e
+        );
+        warn!("GET /make-world-backup: {}", &err_msg);
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response());
+    }
+
+    Ok(StatusCode::NO_CONTENT)
+}
