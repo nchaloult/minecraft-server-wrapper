@@ -17,21 +17,28 @@ pub struct Wrapper {
 }
 
 impl Wrapper {
+    /// Spawns a new Minecraft server process, blocks until that server has
+    /// finished spinning up and is ready to accept commands, and returns a
+    /// [Wrapper].
     pub fn new(
         max_memory_buffer_size: u16,
         server_jar_path: &str,
     ) -> Result<Wrapper, Box<dyn error::Error>> {
         let (process, stdin, stdout_rx) =
             spawn_server_process(max_memory_buffer_size, server_jar_path)?;
-        Ok(Wrapper {
+
+        let mut wrapper = Wrapper {
             process,
             stdin,
             stdout: stdout_rx,
             server_jar_path: server_jar_path.to_owned(),
-        })
+        };
+        wrapper.wait_for_server_to_spin_up();
+
+        Ok(wrapper)
     }
 
-    pub fn wait_for_server_to_spin_up(&mut self) {
+    fn wait_for_server_to_spin_up(&mut self) {
         // TODO: Implement timeout functionality? What if something goes wrong
         // with the underlying server and it just hangs?
 

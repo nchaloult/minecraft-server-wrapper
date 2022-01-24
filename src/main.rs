@@ -54,7 +54,6 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
         config.max_memory_buffer_size,
         &config.server_jar_path,
     )?));
-    wrapper.lock().unwrap().wait_for_server_to_spin_up();
 
     // Get a one-time-use channel that will carry a message indicating that the
     // warp server should be shut down. Designed to be used by the handler for
