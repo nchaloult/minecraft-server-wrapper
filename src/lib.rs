@@ -92,6 +92,25 @@ impl Wrapper {
         Ok(())
     }
 
+    pub fn make_world_backup(&mut self) -> anyhow::Result<()> {
+        self.stop_server()?;
+
+        println!("TODO: Actually make the backup");
+        let server_properties_contents = std::fs::read_to_string(
+            "/Users/npc/projects/mine/mc-server-wrapper/server-playground/server.properties",
+        )
+        .unwrap();
+        println!("{}", server_properties_contents);
+
+        let (process, stdin, stdout_rx) = spawn_server_process(2048, &self.server_jar_path)?;
+        self.process = process;
+        self.stdin = stdin;
+        self.stdout = stdout_rx;
+
+        self.wait_for_server_to_spin_up();
+        Ok(())
+    }
+
     /// Gives the Minecraft server the provided custom command. This function
     /// immediately returns after the command is run; it doesn't watch stdout
     /// or wait to see what the result of that command is.
