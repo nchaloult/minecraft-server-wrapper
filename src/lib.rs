@@ -1,12 +1,16 @@
 use std::{
     error,
+    fs::File,
     io::{self, BufRead, Write},
+    path::Path,
     process,
     sync::mpsc::{self, Receiver},
     thread,
 };
 
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
+use chrono::Utc;
+use flate2::{write::GzEncoder, Compression};
 
 pub struct Wrapper {
     process: process::Child,
@@ -101,13 +105,7 @@ impl Wrapper {
 
     pub fn make_world_backup(&mut self) -> anyhow::Result<()> {
         self.stop_server()?;
-
-        println!("TODO: Actually make the backup");
-        let server_properties_contents = std::fs::read_to_string(
-            "/Users/npc/projects/mine/mc-server-wrapper/server-playground/server.properties",
-        )
-        .unwrap();
-        println!("{}", server_properties_contents);
+        self.compress_world_dir()?;
 
         let (process, stdin, stdout_rx) = spawn_server_process(2048, &self.server_jar_path)?;
         self.process = process;
@@ -115,6 +113,40 @@ impl Wrapper {
         self.stdout = stdout_rx;
 
         self.wait_for_server_to_spin_up();
+        Ok(())
+    }
+
+    /// Compresses the `world/` directory where the Minecraft server saves all
+    /// its info about the world and the players who play on it.
+    ///
+    /// Creates a compressed tarball with the current timestamp as the file
+    /// name. Ex: "2022-01-01T00:00:00+00Z.tar.gz"
+    fn compress_world_dir(&self) -> anyhow::Result<()> {
+        let mc_server_root_dir_path = Path::new(&self.server_jar_path)
+            .parent()
+            .ok_or(anyhow!("Failed to get the parent directory of the path to the server jar. Double check the \"server_jar_path\" value in mc-server-wrapper's config.yaml"))?
+            .to_path_buf();
+
+        let cur_timestamp = Utc::now().to_string();
+        // TODO: For now, create the tarball in the dir that the shell session
+        // which launched the `mc-server-wrapper` binary is in. Later, though,
+        // make this tarball in a dir specified in config.yaml.
+        let mut tarball_path = mc_server_root_dir_path.clone();
+        tarball_path.push(format!("{}.tar.gz", cur_timestamp));
+
+        let tarball_file = File::create(&tarball_path)
+            .with_context(|| format!("Failed to create new tarball at {:?}", &tarball_path))?;
+        let encoder = GzEncoder::new(tarball_file, Compression::default());
+        let mut tarball = tar::Builder::new(encoder);
+
+        let mut world_dir_path = mc_server_root_dir_path.clone();
+        world_dir_path.push("world");
+
+        tarball.append_dir_all(&mc_server_root_dir_path, &world_dir_path)?;
+        tarball
+            .finish()
+            .with_context(|| "Failed to finish writing the world/ into a tarball")?;
+
         Ok(())
     }
 
