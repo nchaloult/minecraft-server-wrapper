@@ -16,66 +16,12 @@ pub struct Wrapper {
 }
 
 impl Wrapper {
-    /// Starts a Minecraft server, captures stdin so we can interact with that
-    /// server while it's running, and captures the contents of stdout so we can
-    /// see what that server is up to.
-    ///
-    /// This function spawns a separate thread which reads new lines that the
-    /// server writes to stdout. When a new line comes in, it prints that line
-    /// to stdout on the host for visibility, and it sends the line along a mpsc
-    /// channel. The Wrapper can then pull messages from this channel if it
-    /// needs to parse messages that the Minecraft server produces.
     pub fn new(
         max_memory_buffer_size: u16,
         server_jar_path: &str,
     ) -> Result<Wrapper, Box<dyn error::Error>> {
-        let (stdout_tx, stdout_rx) = mpsc::channel::<String>();
-
-        let mut process = process::Command::new("java")
-            .args(&[
-                // Just in case...
-                // https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44832
-                // https://twitter.com/slicedlime/status/1469164192389287939
-                "-Dlog4j2.formatMsgNoLookups=true",
-                &format!("-Xmx{}m", max_memory_buffer_size),
-                "-jar",
-                server_jar_path,
-                "nogui",
-            ])
-            .stdin(process::Stdio::piped())
-            .stdout(process::Stdio::piped())
-            .stderr(process::Stdio::piped())
-            .spawn()?;
-
-        let stdin = process
-            .stdin
-            .take()
-            .ok_or("could not capture stdin of the spawned process")?;
-
-        let stdout_reader = io::BufReader::new(process.stdout.take().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                "could not capture stdout of the spawned process",
-            )
-        })?);
-        // Spawn a separate thread to read the messages the Minecraft server
-        // writes to stdout, and send those messages along the mpsc channel we
-        // stood up earlier.
-        thread::spawn(move || {
-            stdout_reader
-                .lines()
-                .filter_map(|line| line.ok())
-                // TODO: Revisit this .unwrap() call on send().
-                //
-                // Do we even want to handle errors here? A Q&D solution might
-                // be to just drop stdout messages that fail to send.
-                .for_each(|line| {
-                    // Print each line for visibility.
-                    println!("{}", line);
-                    stdout_tx.send(line).unwrap()
-                });
-        });
-
+        let (process, stdin, stdout_rx) =
+            spawn_server_process(max_memory_buffer_size, server_jar_path)?;
         Ok(Wrapper {
             process,
             stdin,
@@ -192,4 +138,64 @@ impl Wrapper {
             }
         }
     }
+}
+
+/// Starts a Minecraft server, captures stdin so we can interact with that
+/// server while it's running, and captures the contents of stdout so we can see
+/// what that server is up to.
+///
+/// This function spawns a separate thread which reads new lines that the server
+/// writes to stdout. When a new line comes in, it prints that line to stdout on
+/// the host for visibility, and it sends the line along a mpsc channel. Some
+/// consumer can then pull messages from this channel if it needs to parse
+/// messages that the Minecraft server produces.
+fn spawn_server_process(
+    max_memory_buffer_size: u16,
+    server_jar_path: &str,
+) -> anyhow::Result<(process::Child, process::ChildStdin, Receiver<String>)> {
+    let (stdout_tx, stdout_rx) = mpsc::channel::<String>();
+
+    let mut process = process::Command::new("java")
+        .args(&[
+            // Just in case...
+            // https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44832
+            // https://twitter.com/slicedlime/status/1469164192389287939
+            "-Dlog4j2.formatMsgNoLookups=true",
+            &format!("-Xmx{}m", max_memory_buffer_size),
+            "-jar",
+            server_jar_path,
+            "nogui",
+        ])
+        .stdin(process::Stdio::piped())
+        .stdout(process::Stdio::piped())
+        .stderr(process::Stdio::piped())
+        .spawn()?;
+
+    let stdin = process
+        .stdin
+        .take()
+        .with_context(|| "Failed to capture stdin of the newly-spawned Minecraft server process")?;
+
+    let stdout_reader = io::BufReader::new(process.stdout.take().with_context(|| {
+        "Failed to capture stdout of the newly-spawned Minecraft server process"
+    })?);
+    // Spawn a separate thread to read the messages the Minecraft server
+    // writes to stdout, and send those messages along the mpsc channel we
+    // were given.
+    thread::spawn(move || {
+        stdout_reader
+            .lines()
+            .filter_map(|line| line.ok())
+            .for_each(|line| {
+                // Print each line for visibility.
+                println!("{}", line);
+                // TODO: Revisit this .unwrap() call on send().
+                //
+                // Do we even want to handle errors here? A Q&D solution
+                // might be to just drop stdout messages that fail to send.
+                stdout_tx.send(line).unwrap()
+            });
+    });
+
+    Ok((process, stdin, stdout_rx))
 }
