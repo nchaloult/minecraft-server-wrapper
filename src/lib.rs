@@ -12,6 +12,7 @@ pub struct Wrapper {
     process: process::Child,
     stdin: process::ChildStdin,
     stdout: Receiver<String>,
+    server_jar_path: String,
     // TODO: Do we want to save stderr for anything?
 }
 
@@ -26,6 +27,7 @@ impl Wrapper {
             process,
             stdin,
             stdout: stdout_rx,
+            server_jar_path: server_jar_path.to_owned(),
         })
     }
 
