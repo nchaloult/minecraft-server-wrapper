@@ -2,7 +2,7 @@ use std::{
     error,
     fs::File,
     io::{self, BufRead, Write},
-    path::Path,
+    path::{Path, PathBuf},
     process,
     sync::mpsc::{self, Receiver},
     thread,
@@ -142,10 +142,11 @@ impl Wrapper {
     }
 
     /// Stops the Minecraft server, creates a compressed tarball of the server's
-    /// `world/` directory, and starts a new Minecraft server process.
-    pub fn make_world_backup(&mut self) -> anyhow::Result<()> {
+    /// `world/` directory, and starts a new Minecraft server process. Returns
+    /// the [PathBuf] to that tarball.
+    pub fn make_world_backup(&mut self) -> anyhow::Result<PathBuf> {
         self.stop_server()?;
-        self.compress_world_dir()?;
+        let tarball_path = self.compress_world_dir()?;
 
         let (process, stdin, stdout_rx) = spawn_server_process(2048, &self.server_jar_path)?;
         self.process = process;
@@ -153,15 +154,16 @@ impl Wrapper {
         self.stdout = stdout_rx;
 
         self.wait_for_server_to_spin_up();
-        Ok(())
+        Ok(tarball_path)
     }
 
     /// Compresses the `world/` directory where the Minecraft server saves all
-    /// its info about the world and the players who play on it.
+    /// its info about the world and the players who play on it. Returns the
+    /// [PathBuf] to that tarball.
     ///
     /// Creates a compressed tarball with the current timestamp as the file
     /// name. Ex: "2022-01-01T00:00:00+00Z.tar.gz"
-    fn compress_world_dir(&self) -> anyhow::Result<()> {
+    fn compress_world_dir(&self) -> anyhow::Result<PathBuf> {
         let mc_server_root_dir_path = Path::new(&self.server_jar_path)
             .parent()
             .ok_or(anyhow!("Failed to get the parent directory of the path to the server jar. Double check the \"server_jar_path\" value in mc-server-wrapper's config.yaml"))?
@@ -187,7 +189,7 @@ impl Wrapper {
             .finish()
             .with_context(|| "Failed to finish writing the world/ into a tarball")?;
 
-        Ok(())
+        Ok(tarball_path)
     }
 
     /// Gives the Minecraft server the provided custom command. This function

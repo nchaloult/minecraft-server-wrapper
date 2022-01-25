@@ -5,7 +5,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use log::warn;
+use log::{info, warn};
 use mc_server_wrapper::Wrapper;
 use tokio::sync::oneshot;
 
@@ -52,12 +52,21 @@ pub(crate) async fn list_players(
     }
 }
 
-pub(crate) async fn make_world_backup(
-    wrapper: Arc<Mutex<Wrapper>>,
-) -> Result<StatusCode, Response> {
+pub(crate) async fn make_world_backup(wrapper: Arc<Mutex<Wrapper>>) -> Result<String, Response> {
     let mut w = wrapper.lock().unwrap();
     match w.make_world_backup() {
-        Ok(()) => Ok(StatusCode::NO_CONTENT),
+        Ok(tarball_path) => {
+            let response_msg = format!(
+                "Created a new world backup: {}",
+                // TODO: Revisit unwrap() call here.
+                //
+                // This func is already pretty verbose... not sure if the extra
+                // complexity is worth it.
+                tarball_path.into_os_string().into_string().unwrap()
+            );
+            info!("{}", &response_msg);
+            Ok(response_msg)
+        }
         Err(e) => {
             let mut err_msg = format!(
                 "Something went wrong while trying to make a server backup: {}",
