@@ -141,6 +141,8 @@ impl Wrapper {
         Ok(())
     }
 
+    /// Stops the Minecraft server, creates a compressed tarball of the server's
+    /// `world/` directory, and starts a new Minecraft server process.
     pub fn make_world_backup(&mut self) -> anyhow::Result<()> {
         self.stop_server()?;
         self.compress_world_dir()?;
