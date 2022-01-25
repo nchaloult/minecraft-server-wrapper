@@ -166,7 +166,7 @@ impl Wrapper {
     /// [PathBuf] to that tarball.
     ///
     /// Creates a compressed tarball with the current timestamp as the file
-    /// name. Ex: "2022-01-01T00:00:00+00Z.tar.gz"
+    /// name. Ex: "2022-01-01 00:00:00.000000 UTC.tar.gz"
     fn compress_world_dir(&self) -> anyhow::Result<PathBuf> {
         let mc_server_root_dir_path = Path::new(&self.server_jar_path)
             .parent()
