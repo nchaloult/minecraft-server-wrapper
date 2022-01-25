@@ -103,6 +103,44 @@ impl Wrapper {
         Ok(())
     }
 
+    /// Stops the Minecraft server process, spawns a one, and overwrites this
+    /// [Wrapper]'s struct fields with the `process`, `stdin`, and `stdout` for
+    /// the new process.
+    ///
+    /// Designed to be used when trying to recover from erroneous situations.
+    /// For instance, if a caller invokes [`Wrapper::make_server_backup()`] and
+    /// it returns an error, that error might indicate something went wrong
+    /// trying to spin up a new Minecraft server process. That means all
+    /// subsequent HTTP requests will receive response messages with a 500
+    /// status code since they'll fail to communicate with that process. In
+    /// situations like this, there needs to be a way to attempt to recover.
+    pub fn restart_server(&mut self) -> anyhow::Result<()> {
+        // In comparison to other calls to stop_server(), we go through so much
+        // effort here to make sure the server process is really not running
+        // anymore because that's the primary intention of a call to
+        // restart_server(): we don't want to just fail fast if something goes
+        // wrong trying to kill the old process.
+        if self.stop_server().is_err() {
+            // If something goes wrong trying to stop the server, then kill the
+            // process manually.
+            if let Err(e) = self.process.kill() {
+                // e will be an InvalidInput error if the process was already
+                // killed.
+                if e.kind() != io::ErrorKind::InvalidInput {
+                    bail!("Failed to kill the Minecraft server process. It could still be running. Manual intervention on the machine where this server is running may be involved.")
+                }
+            }
+        }
+
+        let (process, stdin, stdout_rx) = spawn_server_process(2048, &self.server_jar_path)?;
+        self.process = process;
+        self.stdin = stdin;
+        self.stdout = stdout_rx;
+
+        self.wait_for_server_to_spin_up();
+        Ok(())
+    }
+
     pub fn make_world_backup(&mut self) -> anyhow::Result<()> {
         self.stop_server()?;
         self.compress_world_dir()?;
