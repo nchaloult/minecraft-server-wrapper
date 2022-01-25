@@ -55,14 +55,28 @@ pub(crate) async fn list_players(
 pub(crate) async fn make_world_backup(
     wrapper: Arc<Mutex<Wrapper>>,
 ) -> Result<StatusCode, Response> {
-    if let Err(e) = wrapper.lock().unwrap().make_world_backup() {
-        let err_msg = format!(
-            "Something went wrong while trying to make a server backup: {}",
-            e
-        );
-        warn!("GET /make-world-backup: {}", &err_msg);
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response());
+    let mut w = wrapper.lock().unwrap();
+    match w.make_world_backup() {
+        Ok(()) => Ok(StatusCode::NO_CONTENT),
+        Err(e) => {
+            let mut err_msg = format!(
+                "Something went wrong while trying to make a server backup: {}",
+                e
+            );
+            // Try to restart the Minecraft server again before building a
+            // Response.
+            match w.restart_server() {
+                Ok(()) => {
+                    warn!("GET /make-world-backup: {}", &err_msg);
+                    Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response())
+                }
+                Err(e) => {
+                    let err_msg_addendum = format!("\nAfter failing to make that backup, something went wrong while trying to restart the Minecraft server: {}", e);
+                    err_msg.push_str(&err_msg_addendum);
+                    warn!("GET /make-world-backup: {}", &err_msg);
+                    Err((StatusCode::INTERNAL_SERVER_ERROR, err_msg).into_response())
+                }
+            }
+        }
     }
-
-    Ok(StatusCode::NO_CONTENT)
 }
