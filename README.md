@@ -71,6 +71,7 @@ Normally, the primary way to interact with a vanilla Minecraft server is by ente
 ### HTTP APIs
 
 - `GET /list-players`: Get a list of the usernames of all players who are currently logged in
+- `GET /make-world-backup`: Gracefully shut down the Minecraft server, create a compressed tarball of the `world/` directory, and restart it
 - `GET /stop`: Gracefully shut down the Minecraft server, and stop listening for more incoming HTTP requests
 
 ## A Note about API Abuse and Access Management
