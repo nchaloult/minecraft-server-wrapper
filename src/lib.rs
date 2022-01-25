@@ -16,8 +16,9 @@ pub struct Wrapper {
     process: process::Child,
     stdin: process::ChildStdin,
     stdout: Receiver<String>,
-    server_jar_path: String,
     // TODO: Do we want to save stderr for anything?
+    server_jar_path: String,
+    max_memory_buffer_size: u16,
 }
 
 impl Wrapper {
@@ -36,6 +37,7 @@ impl Wrapper {
             stdin,
             stdout: stdout_rx,
             server_jar_path: server_jar_path.to_owned(),
+            max_memory_buffer_size,
         };
         wrapper.wait_for_server_to_spin_up();
 
@@ -132,7 +134,8 @@ impl Wrapper {
             }
         }
 
-        let (process, stdin, stdout_rx) = spawn_server_process(2048, &self.server_jar_path)?;
+        let (process, stdin, stdout_rx) =
+            spawn_server_process(self.max_memory_buffer_size, &self.server_jar_path)?;
         self.process = process;
         self.stdin = stdin;
         self.stdout = stdout_rx;
@@ -148,7 +151,8 @@ impl Wrapper {
         self.stop_server()?;
         let tarball_path = self.compress_world_dir()?;
 
-        let (process, stdin, stdout_rx) = spawn_server_process(2048, &self.server_jar_path)?;
+        let (process, stdin, stdout_rx) =
+            spawn_server_process(self.max_memory_buffer_size, &self.server_jar_path)?;
         self.process = process;
         self.stdin = stdin;
         self.stdout = stdout_rx;
