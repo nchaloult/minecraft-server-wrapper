@@ -125,7 +125,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     });
 
     // Stand up the API server.
-    let addr = SocketAddr::from(([127, 0, 0, 1], config.port));
+    let addr = SocketAddr::from(([0, 0, 0, 0], config.port));
     axum::Server::bind(&addr)
         .serve(routes.into_make_service())
         .with_graceful_shutdown(async {
