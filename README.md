@@ -11,7 +11,7 @@ Built to wrap a vanilla Minecraft server — not servers with [Fabric](https://f
 ## Installation
 
 1. Get a `mc-server-wrapper` binary
-   - Either by downloading one of the prepared ones in this repo's releases **(TODO)**
+   - Either by downloading one of the prepared ones in this repo's releases
    - Or by building this project from source
 1. Follow the steps that you normally would to stand up a vanilla Minecraft server without this wrapper
    - If you've never done this before, there are plenty of resources online about this. [Here](https://help.minecraft.net/hc/en-us/articles/360058525452-How-to-Setup-a-Minecraft-Java-Edition-Server) are [some](https://blogs.oracle.com/developers/post/how-to-set-up-and-run-a-really-powerful-free-minecraft-server-in-the-cloud) to [get](https://www.cloudskillsboost.google/focuses/1852?parent=catalog) you [started](https://dev.to/julbrs/how-to-run-a-minecraft-server-on-aws-for-less-than-3-us-a-month-409p)
