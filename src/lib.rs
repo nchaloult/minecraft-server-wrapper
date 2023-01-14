@@ -129,7 +129,7 @@ impl Wrapper {
                 // e will be an InvalidInput error if the process was already
                 // killed.
                 if e.kind() != io::ErrorKind::InvalidInput {
-                    bail!("Failed to kill the Minecraft server process. It could still be running. Manual intervention on the machine where this server is running may be involved.")
+                    bail!("Failed to kill the Minecraft server process. It could still be running. Manual intervention on the machine where this server is running may be required.")
                 }
             }
         }
