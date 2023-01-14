@@ -77,6 +77,8 @@ Normally, the primary way to interact with a vanilla Minecraft server is by ente
 - `GET /make-world-backup`: Gracefully shut down the Minecraft server, create a compressed tarball of the `world/` directory, and restart it
 - `GET /stop`: Gracefully shut down the Minecraft server, and stop listening for more incoming HTTP requests
 
+(A lot of these `GET` APIs aren't exactly RESTful. They're more like remote procedure calls, really. That's fine with me, I'm not shooting for a great API design with this project.)
+
 ## A Note about API Abuse and Access Management
 
 _Wait, can't anyone hit the API endpoints that `mc-server-wrapper` exposes?_
