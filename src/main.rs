@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     )?));
 
     // Get a one-time-use channel that will carry a message indicating that the
-    // warp server should be shut down. Designed to be used by the handler for
+    // HTTP server should be shut down. Designed to be used by the handler for
     // the /stop route -- this way, when the Minecraft server spins down, we'll
     // stop serving new incoming requests to talk to it.
     let (shutdown_signal_tx, shutdown_signal_rx) = oneshot::channel::<()>();
