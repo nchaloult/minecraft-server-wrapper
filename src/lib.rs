@@ -262,7 +262,7 @@ fn spawn_server_process(
     let (stdout_tx, stdout_rx) = mpsc::channel::<String>();
 
     let mut process = process::Command::new("java")
-        .args(&[
+        .args([
             // Just in case...
             // https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44832
             // https://twitter.com/slicedlime/status/1469164192389287939
