@@ -20,7 +20,7 @@ Built to wrap a vanilla Minecraft server — not servers with [Fabric](https://f
 
 ## Usage
 
-Each time you want to launch the server, run the wrapper instead of running the server `.jar` that Mojang provides.
+Each time you want to launch the server, run the wrapper instead of running the `server.jar` file that Mojang provides.
 
 ```bash
 # Instead of something like:
