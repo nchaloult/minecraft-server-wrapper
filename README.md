@@ -6,7 +6,7 @@ Built to wrap a vanilla Minecraft server — not servers with [Fabric](https://f
 
 **If you plan to run a server with players you don't trust:** please read [this disclaimer](#a-note-about-api-abuse-and-access-management) about API abuse and access management.
 
-![Demo](https://user-images.githubusercontent.com/31291920/151263611-d4448f6f-ed56-41b9-8dbb-d054cf84fb43.gif)
+![Demo](https://user-images.githubusercontent.com/31291920/212489197-880d1b6f-5a38-49c0-9c8e-5c95d993b11b.gif)
 
 ## Installation
 
